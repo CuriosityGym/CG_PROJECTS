@@ -1,0 +1,60 @@
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BMP085_U.h>
+
+// Define the pin connections
+#define MQ2_PIN A0
+#define MQ135_PIN A1
+
+// Create an object for the BMP180 sensor
+Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085);
+
+void setup() {
+  Serial.begin(9600);
+
+  // Initialize BMP180 sensor
+  if (!bmp.begin()) {
+    Serial.print("Could not find a valid BMP085 sensor, check wiring!");
+    while (1);
+  }
+}
+
+void loop() {
+  // Read the gas sensor values
+  int mq2_value = analogRead(MQ2_PIN);
+  int mq135_value = analogRead(MQ135_PIN);
+
+  // Convert the analog readings to voltage
+  float mq2_voltage = mq2_value * (5.0 / 1023.0);
+  float mq135_voltage = mq135_value * (5.0 / 1023.0);
+
+  // Read the BMP180 sensor values
+  sensors_event_t event;
+  bmp.getEvent(&event);
+
+  // Check if the pressure event is available
+  if (event.pressure) {
+    // Display the sensor values
+    Serial.print("MQ-2 Voltage: ");
+    Serial.print(mq2_voltage);
+    Serial.println(" V");
+
+    Serial.print("MQ-135 Voltage: ");
+    Serial.print(mq135_voltage);
+    Serial.println(" V");
+
+    Serial.print("Pressure: ");
+    Serial.print(event.pressure);
+    Serial.println(" hPa");
+
+    // Get temperature
+    float temperature;
+    bmp.getTemperature(&temperature);
+    Serial.print("Temperature: ");
+    Serial.print(temperature);
+    Serial.println(" C");
+  }
+
+  // Wait for 2 seconds before the next reading
+  delay(2000);
+}
