@@ -1,67 +1,48 @@
-#include <ESP8266WiFi.h>
-#include <ESP8266HTTPClient.h>
+#define BLYNK_TEMPLATE_ID "TMPL3pg6USCZk"   // Template ID for Blynk
+#define BLYNK_TEMPLATE_NAME "Fire Alert"    // Name of the Blynk template
+#define BLYNK_AUTH_TOKEN "b4z-zlnSkcfbUD5fQxJvqKJKvoFQkUXG" // Authentication token for Blynk
 
-// Replace with your Wi-Fi credentials
-const char* ssid = "your_SSID"; // Your Wi-Fi network SSID
-const char* password = "your_PASSWORD"; // Your Wi-Fi network password
+#define BLYNK_PRINT Serial   // Enables serial output for debugging
+#include <ESP8266WiFi.h>     // Includes the ESP8266 WiFi library
+#include <BlynkSimpleEsp8266.h>  // Includes the Blynk library for ESP8266
 
-// IFTTT settings
-const String IFTTT_KEY = "your_IFTTT_KEY"; // Replace with your IFTTT key
-const String IFTTT_EVENT = "your_IFTTT_EVENT"; // Replace with your IFTTT event name
-const String IFTTT_URL = "https://maker.ifttt.com/trigger/" + IFTTT_EVENT + "/with/key/" + IFTTT_KEY; // IFTTT URL for making the request
+// Auth token for Blynk, required to connect to the Blynk cloud
+char auth[] = BLYNK_AUTH_TOKEN;
 
-// Pin definitions
-const int flameSensorPin = D1; // Digital flame sensor connected to D1
-const int buzzerPin = D3;      // Buzzer connected to D3
-const int ledPin = D4;         // LED connected to D4
+// Replace these with your Wi-Fi credentials
+char ssid[] = "******";  // Enter your Wi-Fi SSID (network name)
+char pass[] = "*********";  // Enter your Wi-Fi password
 
+BlynkTimer timer;  // Blynk timer object to run tasks periodically
+int flag = 0;  // Flag to prevent multiple alerts
+
+int flameSensorPin = D1;  // Pin connected to the flame sensor
+
+// Function to read sensor data and send alert if necessary
+void sendSensor() { 
+  int flameDetected = digitalRead(flameSensorPin);  // Read the state of the flame sensor
+
+  if (flameDetected == LOW && flag == 0) {  // Flame detected (assuming LOW signal for detection)
+    Serial.println("Fire in the House");  // Print alert message to serial monitor
+    Blynk.logEvent("fire_alert", "Fire Detected by Flame Sensor");  // Log the event on Blynk app
+    flag = 1;  // Set the flag to prevent multiple alerts
+  }
+  else if (flameDetected == HIGH) {  // If the flame is no longer detected
+    flag = 0;  // Reset the flag
+  }
+}
+
+// Setup function, runs once when the device is powered on
 void setup() {
-  // Start serial communication for debugging
-  Serial.begin(115200);
+  pinMode(flameSensorPin, INPUT);  // Set the flame sensor pin as input
 
-  // Initialize the flame sensor pin as input
-  pinMode(flameSensorPin, INPUT);
-  // Initialize the buzzer and LED pins as output
-  pinMode(buzzerPin, OUTPUT);
-  pinMode(ledPin, OUTPUT);
-
-  // Connect to Wi-Fi
-  WiFi.begin(ssid, password); // Start Wi-Fi connection
-  while (WiFi.status() != WL_CONNECTED) { // Wait until the connection is established
-    delay(500); // Wait for 500 milliseconds
-    Serial.print("."); // Print a dot to indicate progress
-  }
-  Serial.println("Connected to WiFi"); // Print a message when connected
+  Serial.begin(115200);  // Start serial communication at 115200 baud rate
+  Blynk.begin(auth, ssid, pass);  // Connect to Blynk cloud using Wi-Fi credentials
+  timer.setInterval(5000L, sendSensor);  // Set the timer to run sendSensor function every 5 seconds
 }
 
+// Main loop function, runs continuously
 void loop() {
-  int flameValue = digitalRead(flameSensorPin); // Read the flame sensor value
-
-  // Check if flame is detected
-  if (flameValue == LOW) { // Digital flame sensors often output LOW when a flame is detected
-    digitalWrite(buzzerPin, HIGH); // Turn on the buzzer
-    digitalWrite(ledPin, HIGH);    // Turn on the LED
-    sendIFTTTNotification();       // Send notification through IFTTT
-    delay(5000); // Delay for 5 seconds to avoid continuous notifications
-  } else {
-    digitalWrite(buzzerPin, LOW); // Turn off the buzzer
-    digitalWrite(ledPin, LOW);    // Turn off the LED
-  }
-
-  delay(1000); // Delay for 1 second before the next check
-}
-
-void sendIFTTTNotification() {
-  HTTPClient http; // Create an HTTPClient object
-  http.begin(IFTTT_URL); // Start the HTTP connection
-  int httpCode = http.GET(); // Send the GET request
-  
-  if (httpCode > 0) { // Check if the request was successful
-    String payload = http.getString(); // Get the response payload
-    Serial.println("IFTTT Notification Sent: " + payload); // Print the response
-  } else {
-    Serial.println("Error in IFTTT Notification"); // Print an error message if the request failed
-  }
-  
-  http.end(); // End the HTTP connection
+  Blynk.run();  // Run Blynk process to keep the connection alive
+  timer.run();  // Run the timer to check sensor data periodically
 }
