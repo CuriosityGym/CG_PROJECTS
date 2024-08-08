@@ -1,0 +1,22 @@
+#include <Servo.h>
+
+Servo myServo;  // create a servo object
+int ldrPin = A0; // LDR pin connected to A0
+int ldrValue = 0; // variable to store LDR value
+int servoPin = 9; // Servo connected to D9
+
+void setup() {
+  myServo.attach(servoPin); // attach the servo to the pin
+  Serial.begin(9600); // start serial communication
+}
+
+void loop() {
+  ldrValue = analogRead(ldrPin); // read the value from the LDR
+  int servoAngle = map(ldrValue, 0, 1023, 0, 180); // map the LDR value to servo angle
+  myServo.write(servoAngle); // move the servo to the calculated angle
+  Serial.print("LDR Value: ");
+  Serial.print(ldrValue);
+  Serial.print(" | Servo Angle: ");
+  Serial.println(servoAngle);
+  delay(100); // wait before the next loop
+}
