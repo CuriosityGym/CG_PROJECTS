@@ -6,8 +6,8 @@
  
 String apiKey = "3J7EGP6SIP22D52C";     //  Enter your Write API key from ThingSpeak
  
-const char *ssid =  "Curiosity Gym";     // replace with your wifi ssid and wpa2 key
-const char *pass =  "robotics4321";
+const char *ssid =  "*******";     // replace with your wifi ssid and wpa2 key
+const char *pass =  "******"; // write your wifi password here
 const char* server = "api.thingspeak.com";
 const int sensorPin= A0;
 int air_quality;
