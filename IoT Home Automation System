@@ -1,0 +1,60 @@
+#define BLYNK_PRINT Serial
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+#include <DHT.h>
+
+char auth[] = "YourAuthToken";  // Replace with your Blynk Auth Token
+char ssid[] = "YourSSID";       // Replace with your WiFi SSID
+char pass[] = "YourPassword";   // Replace with your WiFi password
+
+#define DHTPIN D3
+#define DHTTYPE DHT11
+#define RELAYPIN D1
+#define PIRPIN D2
+#define LDRPIN A0
+
+DHT dht(DHTPIN, DHTTYPE);
+BlynkTimer timer;
+
+void setup() {
+  // Debug console
+  Serial.begin(115200);
+
+  Blynk.begin(auth, ssid, pass);
+  dht.begin();
+  pinMode(RELAYPIN, OUTPUT);
+  pinMode(PIRPIN, INPUT);
+  digitalWrite(RELAYPIN, HIGH);  // Relay off initially
+
+  // Setup a function to be called every second
+  timer.setInterval(1000L, sendSensorData);
+}
+
+// Function to send sensor data to Blynk
+void sendSensorData() {
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+  int ldrValue = analogRead(LDRPIN);
+  int pirState = digitalRead(PIRPIN);
+
+  if (isnan(h) || isnan(t)) {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
+  }
+
+  Blynk.virtualWrite(V2, pirState);
+  Blynk.virtualWrite(V3, t);
+  Blynk.virtualWrite(V4, h);
+  Blynk.virtualWrite(V5, ldrValue);
+}
+
+// Function to control the relay
+BLYNK_WRITE(V1) {
+  int relayState = param.asInt();
+  digitalWrite(RELAYPIN, relayState);
+}
+
+void loop() {
+  Blynk.run();
+  timer.run(); // Run the timer to ensure the data is sent to Blynk
+}
