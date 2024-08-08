@@ -1,60 +1,51 @@
 #include <Wire.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BMP085_U.h>
+#include <Adafruit_BMP085.h>  // For BMP180
 
-// Define the pin connections
-#define MQ2_PIN A0
-#define MQ135_PIN A1
+// Define pin connections
+#define MQ_SENSOR_PIN A0
+#define LED_PRESSURE_PIN 3
+#define LED_MQ_PIN 4
 
-// Create an object for the BMP180 sensor
-Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085);
+Adafruit_BMP085 bmp;
 
 void setup() {
-  Serial.begin(9600);
-
-  // Initialize BMP180 sensor
+  Serial.begin(9600);  // Initialize serial communications with the PC
+  
   if (!bmp.begin()) {
-    Serial.print("Could not find a valid BMP085 sensor, check wiring!");
+    Serial.println("Could not find a valid BMP180 sensor, check wiring!");
     while (1);
   }
+
+  Serial.println("BMP180 sensor initialized. Waiting for pressure readings...");
+
+  pinMode(MQ_SENSOR_PIN, INPUT);
+  pinMode(LED_PRESSURE_PIN, OUTPUT);
+  pinMode(LED_MQ_PIN, OUTPUT);
+
+  Serial.println("Setup complete. Waiting for sensor inputs...");
 }
 
 void loop() {
-  // Read the gas sensor values
-  int mq2_value = analogRead(MQ2_PIN);
-  int mq135_value = analogRead(MQ135_PIN);
-
-  // Convert the analog readings to voltage
-  float mq2_voltage = mq2_value * (5.0 / 1023.0);
-  float mq135_voltage = mq135_value * (5.0 / 1023.0);
-
-  // Read the BMP180 sensor values
-  sensors_event_t event;
-  bmp.getEvent(&event);
-
-  // Check if the pressure event is available
-  if (event.pressure) {
-    // Display the sensor values
-    Serial.print("MQ-2 Voltage: ");
-    Serial.print(mq2_voltage);
-    Serial.println(" V");
-
-    Serial.print("MQ-135 Voltage: ");
-    Serial.print(mq135_voltage);
-    Serial.println(" V");
-
-    Serial.print("Pressure: ");
-    Serial.print(event.pressure);
-    Serial.println(" hPa");
-
-    // Get temperature
-    float temperature;
-    bmp.getTemperature(&temperature);
-    Serial.print("Temperature: ");
-    Serial.print(temperature);
-    Serial.println(" C");
+  // Read pressure value from BMP180 sensor
+  float pressure = bmp.readPressure();
+  Serial.print("Pressure Sensor Value: ");
+  Serial.print(pressure);
+  Serial.println(" Pa");
+  if (pressure > 100700) {  // Adjust threshold as needed (101325 Pa is standard atmospheric pressure)
+    digitalWrite(LED_PRESSURE_PIN, HIGH);
+  } else {
+    digitalWrite(LED_PRESSURE_PIN, LOW);
   }
 
-  // Wait for 2 seconds before the next reading
-  delay(2000);
+  // Read MQ sensor value
+  int mqValue = analogRead(MQ_SENSOR_PIN);
+  Serial.print("MQ Sensor Value: ");
+  Serial.println(mqValue);
+  if (mqValue > 300) {  // Adjust threshold as needed
+    digitalWrite(LED_MQ_PIN, HIGH);
+  } else {
+    digitalWrite(LED_MQ_PIN, LOW);
+  }
+
+  delay(1000);  // Wait for a second before next loop
 }
