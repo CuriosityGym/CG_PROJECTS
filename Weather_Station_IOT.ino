@@ -1,4 +1,4 @@
-//Air Quality Monitoring
+//Weather Station
 
 #include <DHT.h>  // Including library for dht
 #include "MQ135.h"
