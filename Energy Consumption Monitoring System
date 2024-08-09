@@ -1,0 +1,55 @@
+#include <Wire.h>
+#include <RTClib.h>
+
+RTC_DS3231 rtc;
+
+const int relayPin1 = 2;
+const int relayPin2 = 3;
+
+const float powerDevice1 = 60.0; // in watts
+const float powerDevice2 = 75.0; // in watts
+
+DateTime startTime1, startTime2;
+DateTime endTime1, endTime2;
+
+float energyConsumed1 = 0.0;
+float energyConsumed2 = 0.0;
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(relayPin1, INPUT);
+  pinMode(relayPin2, INPUT);
+  
+  if (!rtc.begin()) {
+    Serial.println("Couldn't find RTC");
+    while (1);
+  }
+}
+
+void loop() {
+  if (digitalRead(relayPin1) == HIGH) {
+    startTime1 = rtc.now();
+    while (digitalRead(relayPin1) == HIGH) {
+      // Device is ON
+    }
+    endTime1 = rtc.now();
+    float duration1 = (endTime1.unixtime() - startTime1.unixtime()) / 3600.0; // in hours
+    energyConsumed1 += (powerDevice1 / 1000.0) * duration1; // in kWh
+    Serial.print("Energy consumed by Device 1: ");
+    Serial.print(energyConsumed1);
+    Serial.println(" kWh");
+  }
+
+  if (digitalRead(relayPin2) == HIGH) {
+    startTime2 = rtc.now();
+    while (digitalRead(relayPin2) == HIGH) {
+      // Device is ON
+    }
+    endTime2 = rtc.now();
+    float duration2 = (endTime2.unixtime() - startTime2.unixtime()) / 3600.0; // in hours
+    energyConsumed2 += (powerDevice2 / 1000.0) * duration2; // in kWh
+    Serial.print("Energy consumed by Device 2: ");
+    Serial.print(energyConsumed2);
+    Serial.println(" kWh");
+  }
+}
