@@ -1,0 +1,68 @@
+#include <Wire.h>
+#include <Adafruit_SSD1306.h>
+#include <Adafruit_GFX.h>
+#include <DHT.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET    -1
+#define DHTPIN         4
+#define DHTTYPE        DHT11
+#define RELAYPIN       3
+#define TEMP_THRESHOLD_HIGH 24
+#define TEMP_THRESHOLD_LOW  20
+
+DHT dht(DHTPIN, DHTTYPE);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+void setup() {
+  pinMode(RELAYPIN, OUTPUT);
+  dht.begin();
+
+  // Initialize OLED display
+  if(!display.begin(SSD1306_I2C_ADDRESS, 0x3C)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;);
+  }
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0,0);
+  display.println(F("Smart Thermostat"));
+  display.display();
+  delay(2000);  // Pause for 2 seconds
+}
+
+void loop() {
+  float humidity = dht.readHumidity();
+  float temperature = dht.readTemperature();
+
+  if (isnan(humidity) || isnan(temperature)) {
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.println(F("Failed to read from DHT sensor!"));
+    display.display();
+    delay(2000); // Pause for 2 seconds
+    return;
+  }
+
+  // Control relay based on temperature thresholds
+  if (temperature > TEMP_THRESHOLD_HIGH) {
+    digitalWrite(RELAYPIN, HIGH);  // Turn on cooling
+  } else if (temperature < TEMP_THRESHOLD_LOW) {
+    digitalWrite(RELAYPIN, LOW);   // Turn off cooling
+  }
+
+  // Display temperature and humidity on OLED
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.print(F("Temp: "));
+  display.print(temperature);
+  display.println(F(" C"));
+  display.print(F("Humidity: "));
+  display.print(humidity);
+  display.println(F(" %"));
+  display.display();
+  
+  delay(2000); // Wait for 2 seconds before the next read
+}
