@@ -4,8 +4,8 @@
 
 // Constants for sensor pins
 const int rainSensorPin = A0;
-const int soilMoisturePin = A2;
-const int relayPin = 3;
+const int soilMoisturePin = A1;
+const int relayPin = 5;
 
 // Thresholds
 const int moistureThreshold = 300;  // Adjust as needed
