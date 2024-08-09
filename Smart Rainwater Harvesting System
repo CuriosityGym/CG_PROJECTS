@@ -1,0 +1,67 @@
+#include <Wire.h>
+#include <Adafruit_SSD1306.h>
+#include <Adafruit_GFX.h>
+
+// Constants for sensor pins
+const int rainSensorPin = A0;
+const int soilMoisturePin = A2;
+const int relayPin = 3;
+
+// Thresholds
+const int moistureThreshold = 300;  // Adjust as needed
+const int rainThreshold = 500;      // Adjust as needed
+
+// Initialize the OLED display (change the dimensions if necessary)
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(relayPin, OUTPUT);
+  digitalWrite(relayPin, LOW);  // Ensure pump is off initially
+
+  // Initialize OLED display
+  if (!display.begin(SSD1306_I2C_ADDRESS, 0x3C)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;);
+  }
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+  display.println(F("Rainwater Harvesting System"));
+  display.display();
+}
+
+void loop() {
+  int rainValue = analogRead(rainSensorPin);
+  int soilMoistureValue = analogRead(soilMoisturePin);
+
+  // Check rain sensor and activate pump if necessary
+  if (rainValue > rainThreshold) {
+    digitalWrite(relayPin, HIGH);  // Turn on the pump
+  } else {
+    digitalWrite(relayPin, LOW);   // Turn off the pump
+  }
+
+  // Check soil moisture and activate pump if necessary
+  if (soilMoistureValue < moistureThreshold) {
+    digitalWrite(relayPin, HIGH);  // Turn on the pump
+    delay(5000);  // Run the pump for 5 seconds
+    digitalWrite(relayPin, LOW);   // Turn off the pump
+  }
+
+  // Display sensor values on OLED
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print(F("Rain: "));
+  display.println(rainValue);
+  display.print(F("Soil Moisture: "));
+  display.println(soilMoistureValue);
+  display.display();
+
+  delay(60000);  // Wait for 1 minute before the next loop
+}
