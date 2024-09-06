@@ -1,72 +1,49 @@
+#define BLYNK_TEMPLATE_ID "TMPL3XzrSSZbz"
+#define BLYNK_TEMPLATE_NAME "Vehicle Emission Monitoring System"
+#define BLYNK_AUTH_TOKEN "o-JQekJHjb-Su4GFbt-kZOSu_GIiutFS"
+
+#define BLYNK_PRINT Serial
 #include <ESP8266WiFi.h>
-#include <ThingSpeak.h>
-#include <Wire.h>
+#include <BlynkSimpleEsp8266.h>
 
-// Wi-Fi credentials
-const char* ssid = "your_ssid";             // Replace with your Wi-Fi SSID
-const char* password = "your_password";     // Replace with your Wi-Fi password
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "****";  // Enter your WiFi name
+char pass[] = "********";   // Enter your WiFi password
 
-// ThingSpeak API credentials
-unsigned long myChannelNumber = YOUR_CHANNEL_ID;           // Replace with your ThingSpeak channel ID
-const char* myWriteAPIKey = "YOUR_WRITE_API_KEY";          // Replace with your ThingSpeak Write API key
+int smoke = A0;        // Sensor for detecting gas (vehicle emission)
+int redLed = D1;       // Red LED to indicate emission beyond threshold
+int greenLed = D2;     // Green LED to indicate safe emission levels
+int sensorThres = 360; // Threshold for emission detection
+BlynkTimer timer;
 
-// Alert field for email
-unsigned long alertChannelNumber = YOUR_ALERT_CHANNEL_ID;  // Replace with your ThingSpeak alert channel ID
-const char* alertWriteAPIKey = "YOUR_ALERT_WRITE_API_KEY"; // Replace with your ThingSpeak alert Write API key
+void sendSensor() {
+  int data = analogRead(smoke);
+  Blynk.virtualWrite(V0, data);  // Send data to Blynk app
+  Serial.print("Pin A0: ");
+  Serial.println(data);
 
-// Pin assignments
-const int mq2Pin = A0;           // MQ-2 sensor connected to A0
-const int redLEDPin = D1;        // Red LED connected to D1 (Alert indicator)
-const int greenLEDPin = D2;      // Green LED connected to D2 (Normal status indicator)
-
-// Threshold for gas levels
-const int threshold = 300;       // Gas level threshold, adjust based on calibration
-
-WiFiClient client;
+  if (data > sensorThres) {  // If the emission exceeds the threshold
+    digitalWrite(redLed, HIGH);  // Turn on the red LED (unsafe emission)
+    digitalWrite(greenLed, LOW); // Turn off the green LED
+    Blynk.logEvent("emission_alert", "Vehicle Emission Exceeds Threshold");
+  } else {  // If the emission is below the threshold
+    digitalWrite(redLed, LOW);    // Turn off the red LED
+    digitalWrite(greenLed, HIGH); // Turn on the green LED (safe emission)
+  }
+}
 
 void setup() {
-  Serial.begin(115200);          // Initialize serial communication at 115200 baud rate
-  pinMode(mq2Pin, INPUT);        // Set MQ-2 sensor pin as input
-  pinMode(redLEDPin, OUTPUT);    // Set red LED pin as output
-  pinMode(greenLEDPin, OUTPUT);  // Set green LED pin as output
-  
-  // Connect to Wi-Fi
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");           // Print dots while connecting to Wi-Fi
-  }
-  Serial.println("Connected to WiFi");
-
-  ThingSpeak.begin(client);      // Initialize ThingSpeak client
+  pinMode(smoke, INPUT);      // Smoke sensor
+  pinMode(redLed, OUTPUT);    // Red LED
+  pinMode(greenLed, OUTPUT);  // Green LED
+  digitalWrite(redLed, LOW);  // Ensure red LED is off at startup
+  digitalWrite(greenLed, HIGH);// Ensure green LED is off at startup
+  Serial.begin(115200);
+  Blynk.begin(auth, ssid, pass);
+  timer.setInterval(2500L, sendSensor);  // Check sensor every 2.5 seconds
 }
 
 void loop() {
-  int gasLevel = analogRead(mq2Pin);  // Read gas level from MQ-2 sensor
-  Serial.print("Gas Level: ");
-  Serial.println(gasLevel);
-
-  // Update ThingSpeak with the gas level
-  ThingSpeak.setField(1, gasLevel);                // Set the field value with the gas level
-  ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);  // Write the data to ThingSpeak
-  Serial.println("Data updated to ThingSpeak.");   // Print confirmation message
-
-  // Check if the gas level exceeds the threshold
-  if (gasLevel > threshold) {
-    digitalWrite(redLEDPin, HIGH);    // Turn on red LED if gas level is too high
-    digitalWrite(greenLEDPin, LOW);   // Turn off green LED
-    sendThingSpeakAlert(gasLevel);    // Send alert to ThingSpeak
-  } else {
-    digitalWrite(redLEDPin, LOW);     // Turn off red LED if gas level is normal
-    digitalWrite(greenLEDPin, HIGH);  // Turn on green LED
-  }
-
-  delay(15000);  // Wait for 15 seconds before the next reading
-}
-
-void sendThingSpeakAlert(int gasLevel) {
-  // Update ThingSpeak alert channel with the gas level
-  ThingSpeak.setField(1, gasLevel);  // Set the field value with the gas level
-  ThingSpeak.writeFields(alertChannelNumber, alertWriteAPIKey);  // Write the alert data to ThingSpeak
-  Serial.println("Alert sent to ThingSpeak.");  // Print confirmation message
+  Blynk.run();
+  timer.run();
 }
