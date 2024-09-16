@@ -1,22 +1,48 @@
-#include <Servo.h>
+//Solar tracking system
 
-Servo myServo;  // create a servo object
-int ldrPin = A0; // LDR pin connected to A0
-int ldrValue = 0; // variable to store LDR value
-int servoPin = 9; // Servo connected to D9
+
+//Include the servo motor library
+#include <Servo.h>
+//Define the LDR sensor pins
+#define LDR1 A0
+#define LDR2 A1
+//Define the error value. You can change it as you like
+#define error 10
+//Starting point of the servo motor
+int Spoint =  90;
+//Create an object for the servo motor
+Servo servo;
 
 void setup() {
-  myServo.attach(servoPin); // attach the servo to the pin
-  Serial.begin(9600); // start serial communication
+//Include servo motor PWM pin
+  servo.attach(11);
+//Set the starting point of the servo
+  servo.write(Spoint);
+  delay(1000);
 }
 
 void loop() {
-  ldrValue = analogRead(ldrPin); // read the value from the LDR
-  int servoAngle = map(ldrValue, 0, 1023, 0, 180); // map the LDR value to servo angle
-  myServo.write(servoAngle); // move the servo to the calculated angle
-  Serial.print("LDR Value: ");
-  Serial.print(ldrValue);
-  Serial.print(" | Servo Angle: ");
-  Serial.println(servoAngle);
-  delay(100); // wait before the next loop
+//Get the LDR sensor value
+  int ldr1 = analogRead(LDR1);
+//Get the LDR sensor value
+  int ldr2 = analogRead(LDR2);
+
+//Get the difference of these values
+  int value1 = abs(ldr1 - ldr2);
+  int value2 = abs(ldr2 - ldr1);
+
+//Check these values using a IF condition
+  if ((value1 <= error) || (value2 <= error)) {
+
+  } else {
+    if (ldr1 > ldr2) {
+      Spoint = --Spoint;
+    }
+    if (ldr1 < ldr2) {
+      Spoint = ++Spoint;
+    }
+  }
+//Write values on the servo motor
+  servo.write(Spoint);
+  delay(80);
 }
