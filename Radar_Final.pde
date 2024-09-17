@@ -1,130 +1,124 @@
-import processing.serial.*; // Imports library for serial communication
+import processing.serial.*; // imports library for serial communication
 
-Serial myPort; // Defines Serial Object
+Serial myPort; // defines Object Serial
+// defines variables
 String angle = "";
 String distance = "";
 String data = "";
 String noObject;
 float pixsDistance;
-int iAngle, iDistance;
-int index1 = 0;
+int iAngle = 0, iDistance = 0;
 PFont orcFont;
 
 void setup() {
-  fullScreen(); // Set canvas size to full screen
+  size(1200, 700); // Set the size of the window
   smooth();
-  myPort = new Serial(this, "COM13", 9600); // Start serial communication
-  myPort.bufferUntil('.'); // Read data up to the character '.'
-  orcFont = loadFont("OCRAExtended-30.vlw");
+  myPort = new Serial(this, "COM13", 9600); // starts the serial communication
+  myPort.bufferUntil('.'); // reads the data from the serial port up to the character '.'
 }
 
 void draw() {
-  background(0); // Clear the background
   fill(98, 245, 31);
-  textFont(orcFont);
-  
-  drawRadar(); 
+  // simulating motion blur and slow fade of the moving line
+  noStroke();
+  fill(0, 4);
+  rect(0, 0, width, height - height * 0.065);
+
+  fill(98, 245, 31); // green color
+  // calls the functions for drawing the radar
+  drawRadar();
   drawLine();
   drawObject();
   drawText();
 }
 
-void serialEvent(Serial myPort) { // Reads data from Serial Port
+void serialEvent(Serial myPort) { // starts reading data from the Serial Port
+  // reads the data from the Serial Port up to the character '.' and puts it into the String variable "data".
   data = myPort.readStringUntil('.');
-  if (data != null) {
-    data = data.trim(); // Remove any extra whitespace
-    index1 = data.indexOf(",");
-    if (index1 != -1) {
-      angle = data.substring(0, index1);
-      distance = data.substring(index1 + 1);
-      
-      iAngle = int(angle);
-      iDistance = int(distance);
-    }
-  }
+  data = data.substring(0, data.length() - 1);
+
+  int index1 = data.indexOf(","); // find the character ',' and puts it into the variable "index1"
+  angle = data.substring(0, index1); // read the data from position "0" to position of the variable index1 or that's the value of the angle the Arduino Board sent into the Serial Port
+  distance = data.substring(index1 + 1, data.length()); // read the data from position "index1" to the end of the data or that's the value of the distance
+
+  // converts the String variables into Integer
+  iAngle = int(angle);
+  iDistance = int(distance);
 }
 
 void drawRadar() {
   pushMatrix();
-  translate(width / 2, height / 2); // Center radar in the canvas
-  noFill();
-  strokeWeight(2); // Thicker lines for better visibility
-  stroke(98, 245, 31);
-  
-  // Draw radar arcs with adjusted sizes
-  arc(0, 0, 400, 400, PI, TWO_PI);
-  arc(0, 0, 300, 300, PI, TWO_PI);
-  arc(0, 0, 200, 200, PI, TWO_PI);
-  arc(0, 0, 100, 100, PI, TWO_PI);
-  
-  // Draw angle lines from 0° to 180°
-  for (int angle = 0; angle <= 180; angle += 30) {
-    float xEnd = 200 * cos(radians(angle));
-    float yEnd = 200 * sin(radians(angle));
-    line(0, 0, xEnd, yEnd);
-  }
-  
-  // Draw semicircle to show the radar field
+  translate(width / 2, height - height * 0.074); // moves the starting coordinates to new location
   noFill();
   strokeWeight(2);
-  arc(0, 0, 400, 400, PI, TWO_PI);
-  
+  stroke(98, 245, 31);
+  // draws the arc lines
+  arc(0, 0, (width - width * 0.0625), (width - width * 0.0625), PI, TWO_PI);
+  arc(0, 0, (width - width * 0.27), (width - width * 0.27), PI, TWO_PI);
+  arc(0, 0, (width - width * 0.479), (width - width * 0.479), PI, TWO_PI);
+  arc(0, 0, (width - width * 0.687), (width - width * 0.687), PI, TWO_PI);
+  // draws the angle lines
+  line(-width / 2, 0, width / 2, 0);
+  line(0, 0, (-width / 2) * cos(radians(30)), (-width / 2) * sin(radians(30)));
+  line(0, 0, (-width / 2) * cos(radians(60)), (-width / 2) * sin(radians(60)));
+  line(0, 0, (-width / 2) * cos(radians(90)), (-width / 2) * sin(radians(90)));
+  line(0, 0, (-width / 2) * cos(radians(120)), (-width / 2) * sin(radians(120)));
+  line(0, 0, (-width / 2) * cos(radians(150)), (-width / 2) * sin(radians(150)));
+  line((-width / 2) * cos(radians(30)), 0, width / 2, 0);
   popMatrix();
 }
 
 void drawObject() {
   pushMatrix();
-  translate(width / 2, height / 2); // Center object in the canvas
-  strokeWeight(3); // Adjust line thickness
-  stroke(255, 10, 10); // Red color
-  
-  if (iDistance >= 0 && iDistance < 40) { // Ensure distance is within the valid range
-    pixsDistance = iDistance * 10; // Adjust scaling factor for better fit
-    line(pixsDistance * cos(radians(iAngle)), -pixsDistance * sin(radians(iAngle)),
-         200 * cos(radians(iAngle)), -200 * sin(radians(iAngle)));
+  translate(width / 2, height - height * 0.074); // moves the starting coordinates to new location
+  strokeWeight(9);
+  stroke(255, 10, 10); // red color
+  pixsDistance = iDistance * ((height - height * 0.1666) * 0.025); // converts the distance from cm to pixels
+  // draws the object according to the angle and the distance
+  if (iDistance > 0) {
+    line(pixsDistance * cos(radians(iAngle)), -pixsDistance * sin(radians(iAngle)), (width - width * 0.505) * cos(radians(iAngle)), -(width - width * 0.505) * sin(radians(iAngle)));
   }
   popMatrix();
 }
 
 void drawLine() {
   pushMatrix();
-  strokeWeight(3); // Adjust line thickness
-  stroke(30, 250, 60); // Green color
-  translate(width / 2, height / 2); // Center line in the canvas
-  line(0, 0, 200 * cos(radians(iAngle)), -200 * sin(radians(iAngle)));
+  strokeWeight(9);
+  stroke(30, 250, 60);
+  translate(width / 2, height - height * 0.074); // moves the starting coordinates to new location
+  line(0, 0, (height - height * 0.12) * cos(radians(iAngle)), -(height - height * 0.12) * sin(radians(iAngle))); // draws the line according to the angle
   popMatrix();
 }
 
-void drawText() { // Draws text on the screen
+void drawText() { // draws the texts on the screen
+  pushMatrix();
   fill(0, 0, 0);
   noStroke();
-  rect(0, height - 120, width, 120); // Background for text
-  
+  rect(0, height - height * 0.065, width, height); // Background rectangle for text
+
   fill(98, 245, 31);
-  textSize(20);
-  
-  // Distance scale
-  text("10cm", width * 0.55, height - 90);
-  text("20cm", width * 0.65, height - 90);
-  text("30cm", width * 0.75, height - 90);
-  text("40cm", width * 0.85, height - 90);
-  
   textSize(25);
-  
-  // Status and measurements
-  text("Object: " + (iDistance > 40 ? "Out of Range" : "In Range"), 30, height - 60);
-  text("Angle: " + iAngle + " °", width * 0.55, height - 60);
-  text("Distance: " + (iDistance < 40 ? iDistance + " cm" : "N/A"), width * 0.55, height - 30);
-  
-  textSize(20);
+
+  // Distance labels
+  text("10cm", width - width * 0.3854, height - height * 0.050);
+  text("20cm", width - width * 0.281, height - height * 0.050);
+  text("30cm", width - width * 0.177, height - height * 0.050);
+  text("40cm", width - width * 0.0729, height - height * 0.050);
+
+  textSize(30);
+  text("Angle: " + iAngle + " °", width - width * 0.48, height - height * 0.025);
+  text("Distance: " + (iDistance > 0 ? iDistance + " cm" : "Out of Range"), width - width * 0.26, height - height * 0.025);
+
+  // Angle labels
   fill(98, 245, 60);
-  
-  // Draw angle labels from 0° to 180°
-  translate(width / 2, height / 2); // Center text in the canvas
-  for (int angle = 0; angle <= 180; angle += 30) {
-    pushMatrix();
-    rotate(radians(-angle));
-    text(angle + "°", 0, -220); // Adjust position for visibility
-    popMatrix();
+  textSize(20);
+  float[] anglePositions = {30, 60, 90, 120, 150};
+  for (float angle : anglePositions) {
+    float rad = radians(angle);
+    float x = width / 2 * cos(rad);
+    float y = -width / 2 * sin(rad);
+    text(angle + "°", width / 2 + x, height - height * 0.074 + y);
   }
+
+  popMatrix();
 }
