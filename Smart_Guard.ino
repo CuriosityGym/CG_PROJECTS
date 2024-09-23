@@ -5,8 +5,8 @@
 #define FIREBASE_AUTH "uqjBZv63fRbaqH5T2TKqfkjrOoQEGnU1VF2JqobG"  // Firebase Database Secret
 
 // WiFi credentials
-#define WIFI_SSID "Curiosity Gym"
-#define WIFI_PASSWORD "robotics4321"
+#define WIFI_SSID "XXXXXX" //enter your hotspot name here
+#define WIFI_PASSWORD "XXXXXXX" // enter hotspot password here
 
 const int irPin = D1;      // IR sensor pin
 const int touchPin = D2;   // Touch sensor pin
@@ -14,7 +14,11 @@ const int buzzerPin = D6;  // Buzzer pin
 const int ledPin = D5;     // LED pin
 
 FirebaseData firebaseData; // Create a FirebaseData object
-bool alarmTriggered = false; // Flag to track if alarm was triggered
+bool alarmTriggered = false; // Flag to track if the alarm was triggered
+bool touchActive = false;    // Flag to track if the touch sensor should be active
+bool manualReset = false;    // Flag to manually turn off the LED
+unsigned long triggerTime = 0; // Variable to track when the alarm was triggered
+const unsigned long resetDelay = 10000; // 10 seconds in milliseconds
 
 void setup() {
   Serial.begin(115200);
@@ -50,40 +54,60 @@ void loop() {
   // Check if thief (IR sensor) is detected
   int irSensorState = digitalRead(irPin);
   if (irSensorState == LOW && !alarmTriggered) {
-    Serial.println("Thief detected! LED turned ON.");
+    Serial.println("Thief detected! LED turned ON, touch sensor activated.");
     digitalWrite(ledPin, HIGH); // Turn on LED
-    alarmTriggered = true; // Set flag to prevent multiple Firebase updates
+    alarmTriggered = true;      // Set flag to prevent multiple detections
+    touchActive = true;         // Enable the touch sensor after thief detection
+    triggerTime = millis();     // Record the time when the alarm was triggered
 
-    // Update Firebase when thief detected
+    // Update Firebase when thief is detected
     if (Firebase.setInt(firebaseData, "/alert", 1)) {
       Serial.println("Firebase updated: alert=1");
     } else {
       Serial.print("Failed to update Firebase: alert=1. Error: ");
       Serial.println(firebaseData.errorReason());
     }
-  } else if (irSensorState == HIGH && alarmTriggered) {
-    // Reset alarm when no thief detected
-    Serial.println("Thief gone, resetting alert.");
-    digitalWrite(ledPin, LOW); // Turn off LED
-    alarmTriggered = false; // Reset flag
+  }
 
-    // Reset Firebase alert
-    if (Firebase.setInt(firebaseData, "/alert", 0)) {
-      Serial.println("Firebase updated: alert=0");
+  // Check if the touch sensor is active and detects a touch
+  if (touchActive) {
+    int touchSensorState = digitalRead(touchPin);
+    if (touchSensorState == HIGH) {
+      Serial.println("Object touched! Buzzer turned ON.");
+      digitalWrite(buzzerPin, HIGH);  // Turn on the buzzer
     } else {
-      Serial.print("Failed to update Firebase: alert=0. Error: ");
-      Serial.println(firebaseData.errorReason());
+      digitalWrite(buzzerPin, LOW);   // Turn off the buzzer when no touch is detected
     }
   }
 
-  // Check for touch sensor
-  int touchSensorState = digitalRead(touchPin);
-  if (touchSensorState == HIGH && alarmTriggered) {
-    Serial.println("Object touched! Buzzer turned ON.");
-    digitalWrite(buzzerPin, HIGH); // Turn on the buzzer
-  } else {
-    digitalWrite(buzzerPin, LOW); // Turn off buzzer when no touch detected
+  // Check if the time since alarm was triggered exceeds 3000 seconds (resetDelay)
+  if (alarmTriggered && millis() - triggerTime >= resetDelay) {
+    Serial.println("3000 seconds elapsed: Resetting system and turning off LED.");
+    resetSystem(); // Call the function to reset the system and Firebase
   }
 
   delay(500); // Small delay to avoid flooding the loop
+}
+
+// Function to manually reset the system, e.g., through a button press or a remote command.
+void manualTurnOff() {
+  manualReset = true;  // Set the manual reset flag to true, allowing for the system to reset in the loop
+}
+
+// Function to reset the system and update Firebase alert to 0
+void resetSystem() {
+  digitalWrite(ledPin, LOW);   // Turn off LED
+  alarmTriggered = false;      // Reset alarm flag
+  touchActive = false;         // Deactivate touch sensor
+  manualReset = false;         // Reset manual flag
+
+  // Reset Firebase alert
+  if (Firebase.setInt(firebaseData, "/alert", 0)) {
+    Serial.println("Firebase updated: alert=0");
+  } else {
+    Serial.print("Failed to update Firebase: alert=0. Error: ");
+    Serial.println(firebaseData.errorReason());
+  }
+
+  Serial.println("System reset complete.");
 }
