@@ -1,5 +1,5 @@
-#define BLYNK_TEMPLATE_ID "TMPL3DrJhgLPz"
-#define BLYNK_TEMPLATE_NAME "Smart Hydration Reminder System"
+#define BLYNK_TEMPLATE_ID "Add your project template ID"
+#define BLYNK_TEMPLATE_NAME "Add your project template name"
 
 #include <BlynkSimpleEsp8266.h>
 #include <Wire.h>
@@ -9,9 +9,9 @@
 
 RTC_DS3231 rtc;
 
-char auth[] = "QhKsUdo_JhGT9QszcEo0gFX2ZlhSknBH"; // Replace with your Blynk Auth Token
-char ssid[] = "Diksha sky"; // Replace with your Wi-Fi SSID
-char pass[] = "diksha263284"; // Replace with your Wi-Fi password
+char auth[] = "Add your project auth code"; // Replace with your Blynk Auth Token
+char ssid[] = "Add your ssid"; // Replace with your Wi-Fi SSID
+char pass[] = "Add yur password"; // Replace with your Wi-Fi password
 
 const int buzzerPin = D3; // Buzzer pin
 int totalGlasses = 0; // Counter for water glasses consumed
